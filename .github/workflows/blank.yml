@@ -23,5 +23,5 @@ jobs:
 
     - name: Start Pinggy Tunnel & Keep Alive
       run: |
-        Write-Host "Launching Signed Pinggy Node Server Container..."
-        ssh -T -o StrictHostKeyChecking=no -p 443 -R 0:127.0.0.1:3389 ${{ secrets.PINGGY_TOKEN }}+tcp@pro.pinggy.io
+        Write-Host "Launching Official Pinggy Node Server Container..."
+        ssh -T -p 443 -R 0:127.0.0.1:3389 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io
