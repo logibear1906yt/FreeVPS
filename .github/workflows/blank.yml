@@ -11,32 +11,39 @@ jobs:
     steps:
     - name: Download Ngrok
       run: |
+        $ErrorActionPreference = 'Continue'
         $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest -Uri "https://equinox.io" -OutFile "ngrok.zip"
-        Expand-Archive -Path "ngrok.zip" -DestinationPath ".\ngrok"
+        Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip" -OutFile "ngrok.zip"
+        Expand-Archive -Path "ngrok.zip" -DestinationPath ".\ngrok" -Force
 
     - name: Authenticate Ngrok
-      run: .\ngrok\ngrok.exe authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+      run: |
+        $ErrorActionPreference = 'Continue'
+        .\ngrok\ngrok.exe authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
     - name: Enable Remote Desktop
       run: |
+        $ErrorActionPreference = 'Continue'
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
 
     - name: Create Windows User
       run: |
+        $ErrorActionPreference = 'Continue'
         $Password = ConvertTo-SecureString "VPSPassword2026!" -AsPlainText -Force
         New-LocalUser -Name "vpsuser" -Password $Password -Description "RDP Account"
         Add-LocalGroupMember -Group "Administrators" -Member "vpsuser"
 
     - name: Create Tunnel
       run: |
+        $ErrorActionPreference = 'Continue'
         Start-Process .\ngrok\ngrok.exe -ArgumentList "tcp --log=stdout 3389"
         Start-Sleep -Seconds 5
 
     - name: Print Connection Link & Keep Alive
       run: |
+        $ErrorActionPreference = 'Continue'
         $NgrokLog = Invoke-WebRequest -Uri "http://127.0.0" | ConvertFrom-Json
         $Url = $NgrokLog.tunnels.public_url
         Write-Host "========================================="
