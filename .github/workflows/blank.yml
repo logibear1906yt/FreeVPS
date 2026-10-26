@@ -21,7 +21,24 @@ jobs:
         New-LocalUser -Name "vpsuser" -Password $Password -Description "RDP Account"
         Add-LocalGroupMember -Group "Administrators" -Member "vpsuser"
 
-    - name: Start Pinggy Tunnel & Keep Alive
+    - name: Start Pinggy Tunnel & Show Link
       run: |
-        Write-Host "Launching Official Pinggy Node Server Container..."
-        ssh -T -p 443 -R 0:127.0.0.1:3389 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io
+        Write-Host "Initializing connection... Your link will print below shortly."
+        $LogFile = "D:\pinggy.log"
+        
+        # Start SSH in background and write its output text to a file
+        Start-Process ssh -ArgumentList "-T -p 443 -R 0:127.0.0.1:3389 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io" -RedirectStandardOutput $LogFile -RedirectStandardError $LogFile
+        
+        # Wait 15 seconds for the connection to form, then read and print the log
+        Start-Sleep -Seconds 15
+        if (Test-Path $LogFile) {
+            $Content = Get-Content $LogFile -Raw
+            Write-Host "========================================="
+            Write-Host $Content
+            Write-Host "========================================="
+        } else {
+            Write-Host "Log file not generated yet. Please wait..."
+        }
+        
+        # Keep the main process holding open for the 6 hour VPS timer
+        Start-Sleep -Seconds 21600
