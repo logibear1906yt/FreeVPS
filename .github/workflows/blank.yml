@@ -24,21 +24,27 @@ jobs:
     - name: Start Pinggy Tunnel & Show Link
       run: |
         Write-Host "Initializing connection... Your link will print below shortly."
-        $LogFile = "D:\pinggy.log"
+        $OutFile = "D:\pinggy_out.log"
+        $ErrFile = "D:\pinggy_err.log"
         
-        # Start SSH in background and write its output text to a file
-        Start-Process ssh -ArgumentList "-T -p 443 -R 0:127.0.0.1:3389 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io" -RedirectStandardOutput $LogFile -RedirectStandardError $LogFile
+        # Start SSH with completely separate log redirection paths
+        Start-Process ssh -ArgumentList "-T -p 443 -R 0:127.0.0.1:3389 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io" -RedirectStandardOutput $OutFile -RedirectStandardError $ErrFile
         
-        # Wait 15 seconds for the connection to form, then read and print the log
+        # Wait 15 seconds for Pinggy to assign your server link
         Start-Sleep -Seconds 15
-        if (Test-Path $LogFile) {
-            $Content = Get-Content $LogFile -Raw
-            Write-Host "========================================="
-            Write-Host $Content
-            Write-Host "========================================="
-        } else {
-            Write-Host "Log file not generated yet. Please wait..."
-        }
         
-        # Keep the main process holding open for the 6 hour VPS timer
+        Write-Host "========================================="
+        if (Test-Path $OutFile) {
+            $Content = Get-Content $OutFile -Raw
+            Write-Host "OUTPUT LOG:"
+            Write-Host $Content
+        }
+        if (Test-Path $ErrFile) {
+            $Errors = Get-Content $ErrFile -Raw
+            Write-Host "SYSTEM MESSAGES / WARNINGS:"
+            Write-Host $Errors
+        }
+        Write-Host "========================================="
+        
+        # Keep the runner holding online for the 6 hour VPS timer
         Start-Sleep -Seconds 21600
