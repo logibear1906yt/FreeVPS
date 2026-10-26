@@ -21,28 +21,31 @@ jobs:
         New-LocalUser -Name "vpsuser" -Password $Password -Description "RDP Account"
         Add-LocalGroupMember -Group "Administrators" -Member "vpsuser"
 
-    - name: Start Pinggy Tunnel & Show Link
+    - name: Start Pinggy Tunnel & Print Address
       run: |
-        Write-Host "Initializing connection... Querying Local Pinggy Link API..."
+        Write-Host "Initializing connection with Pinggy nodes..."
+        $LogPath = "D:\pinggy_raw.log"
         
-        # Start SSH with local web info terminal port enabled
-        Start-Process ssh -ArgumentList "-T -p 443 -R 0:127.0.0.1:3389 -L 4321:127.0.0.1:4321 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io"
+        # Launch SSH tunnel and force all terminal text to a background text dump file
+        Start-Process cmd -ArgumentList "/c ssh -T -p 443 -R 0:127.0.0.1:3389 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io" -RedirectStandardOutput $LogPath -RedirectStandardError $LogPath
         
-        # Give the background daemon 15 seconds to connect to the node grid
-        Start-Sleep -Seconds 15
+        # Allow the tunnel handshake 20 seconds to establish with free.pinggy.io servers
+        Start-Sleep -Seconds 20
         
-        # Query Pinggy's internal diagnostic portal to fetch your live address
-        try {
-            $PinggyAPI = Invoke-WebRequest -Uri "https://pinggy.io" -UseBasicParsing | ConvertFrom-Json
-            $Url = $PinggyAPI.tunnels.public_url
-            Write-Host "========================================="
-            Write-Host "YOUR VPS LINK IS: $Url"
-            Write-Host "========================================="
-        } catch {
-            Write-Host "========================================="
-            Write-Host "Check your Pinggy Dashboard web panel or run history for link metrics."
-            Write-Host "========================================="
+        Write-Host "========================================="
+        if (Test-Path $LogPath) {
+            $RawText = Get-Content $LogPath -Raw
+            # Filter the dump file specifically looking for the raw pinggy link format match
+            if ($RawText -match "(a\.free\.pinggy\.link:\d+)") {
+                Write-Host "YOUR VPS LINK IS: tcp://$($Matches[1])"
+            } else {
+                Write-Host "Parsing logs... If blank, look for the link here:"
+                Get-Content $LogPath | Select-String -Pattern "pinggy"
+            }
+        } else {
+            Write-Host "Tunnel initializing. Refresh log window shortly."
         }
+        Write-Host "========================================="
         
-        # Maintain background runner presence
+        # Maintain background runner presence for 6 hours
         Start-Sleep -Seconds 21600
