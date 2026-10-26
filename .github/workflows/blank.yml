@@ -13,7 +13,7 @@ jobs:
       run: |
         $ErrorActionPreference = 'Continue'
         $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip" -OutFile "ngrok.zip"
+        Invoke-WebRequest -Uri "https://equinox.io" -OutFile "ngrok.zip"
         Expand-Archive -Path "ngrok.zip" -DestinationPath ".\ngrok" -Force
 
     - name: Authenticate Ngrok
@@ -38,14 +38,24 @@ jobs:
     - name: Create Tunnel
       run: |
         $ErrorActionPreference = 'Continue'
-        Start-Process .\ngrok\ngrok.exe -ArgumentList "tcp --log=stdout 3389"
-        Start-Sleep -Seconds 5
+        Start-Process .\ngrok\ngrok.exe -ArgumentList "tcp 3389"
 
     - name: Print Connection Link & Keep Alive
       run: |
         $ErrorActionPreference = 'Continue'
-        $NgrokLog = Invoke-WebRequest -Uri "http://127.0.0" | ConvertFrom-Json
-        $Url = $NgrokLog.tunnels.public_url
+        Start-Sleep -Seconds 20
+        
+        $Url = ""
+        for ($i=0; $i -lt 10; $i++) {
+            try {
+                $NgrokLog = Invoke-WebRequest -Uri "http://127.0.0" -UseBasicParsing | ConvertFrom-Json
+                $Url = $NgrokLog.tunnels.public_url
+                if ($Url) { break }
+            } catch {
+                Start-Sleep -Seconds 5
+            }
+        }
+        
         Write-Host "========================================="
         Write-Host "YOUR VPS LINK IS: $Url"
         Write-Host "========================================="
