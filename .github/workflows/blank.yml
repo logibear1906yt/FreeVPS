@@ -43,20 +43,16 @@ jobs:
     - name: Print Connection Link & Keep Alive
       run: |
         $ErrorActionPreference = 'Continue'
-        Start-Sleep -Seconds 20
-        
-        $Url = ""
-        for ($i=0; $i -lt 10; $i++) {
-            try {
-                $NgrokLog = Invoke-WebRequest -Uri "http://127.0.0" -UseBasicParsing | ConvertFrom-Json
-                $Url = $NgrokLog.tunnels.public_url
-                if ($Url) { break }
-            } catch {
-                Start-Sleep -Seconds 5
-            }
+        Start-Sleep -Seconds 30
+        try {
+            $NgrokLog = Invoke-WebRequest -Uri "http://127.0.0" -UseBasicParsing | ConvertFrom-Json
+            $Url = $NgrokLog.tunnels.public_url
+            Write-Host "========================================="
+            Write-Host "YOUR VPS LINK IS: $Url"
+            Write-Host "========================================="
+        } catch {
+            Write-Host "========================================="
+            Write-Host "Ngrok API loading. Check dashboard if link is missing."
+            Write-Host "========================================="
         }
-        
-        Write-Host "========================================="
-        Write-Host "YOUR VPS LINK IS: $Url"
-        Write-Host "========================================="
         Start-Sleep -Seconds 21600
