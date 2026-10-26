@@ -1,4 +1,4 @@
-name: Windows-VPS
+name: Windows-VPS-Pinggy
 
 on: 
   workflow_dispatch:
@@ -9,10 +9,6 @@ jobs:
     timeout-minutes: 360
 
     steps:
-    - name: Install Ngrok via Chocolatey
-      run: |
-        choco install ngrok -y
-
     - name: Enable Remote Desktop
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
@@ -25,7 +21,7 @@ jobs:
         New-LocalUser -Name "vpsuser" -Password $Password -Description "RDP Account"
         Add-LocalGroupMember -Group "Administrators" -Member "vpsuser"
 
-    - name: Execute Tunnel and Keep Alive
+    - name: Start Pinggy Tunnel & Keep Alive
       run: |
-        Write-Host "Starting Ngrok Secure TCP Tunnel..."
-        ngrok tcp 3389 --authtoken ${{ secrets.NGROK_AUTH_TOKEN }} --region us
+        Write-Host "Starting Free Pinggy Tunnel..."
+        ssh -o StrictHostKeyChecking=no -R 0:127.0.0.1:3389 tcp.pinggy.io
