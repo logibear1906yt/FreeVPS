@@ -23,28 +23,26 @@ jobs:
 
     - name: Start Pinggy Tunnel & Show Link
       run: |
-        Write-Host "Initializing connection... Your link will print below shortly."
-        $OutFile = "D:\pinggy_out.log"
-        $ErrFile = "D:\pinggy_err.log"
+        Write-Host "Initializing connection... Querying Local Pinggy Link API..."
         
-        # Start SSH with completely separate log redirection paths
-        Start-Process ssh -ArgumentList "-T -p 443 -R 0:127.0.0.1:3389 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io" -RedirectStandardOutput $OutFile -RedirectStandardError $ErrFile
+        # Start SSH with local web info terminal port enabled
+        Start-Process ssh -ArgumentList "-T -p 443 -R 0:127.0.0.1:3389 -L 4321:127.0.0.1:4321 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io"
         
-        # Wait 15 seconds for Pinggy to assign your server link
+        # Give the background daemon 15 seconds to connect to the node grid
         Start-Sleep -Seconds 15
         
-        Write-Host "========================================="
-        if (Test-Path $OutFile) {
-            $Content = Get-Content $OutFile -Raw
-            Write-Host "OUTPUT LOG:"
-            Write-Host $Content
+        # Query Pinggy's internal diagnostic portal to fetch your live address
+        try {
+            $PinggyAPI = Invoke-WebRequest -Uri "https://pinggy.io" -UseBasicParsing | ConvertFrom-Json
+            $Url = $PinggyAPI.tunnels.public_url
+            Write-Host "========================================="
+            Write-Host "YOUR VPS LINK IS: $Url"
+            Write-Host "========================================="
+        } catch {
+            Write-Host "========================================="
+            Write-Host "Check your Pinggy Dashboard web panel or run history for link metrics."
+            Write-Host "========================================="
         }
-        if (Test-Path $ErrFile) {
-            $Errors = Get-Content $ErrFile -Raw
-            Write-Host "SYSTEM MESSAGES / WARNINGS:"
-            Write-Host $Errors
-        }
-        Write-Host "========================================="
         
-        # Keep the runner holding online for the 6 hour VPS timer
+        # Maintain background runner presence
         Start-Sleep -Seconds 21600
