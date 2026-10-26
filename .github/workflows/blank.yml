@@ -24,26 +24,29 @@ jobs:
     - name: Start Pinggy Tunnel & Print Address
       run: |
         Write-Host "Initializing connection with Pinggy nodes..."
-        $LogPath = "D:\pinggy_raw.log"
+        $OutPath = "D:\pinggy_out.log"
+        $ErrPath = "D:\pinggy_err.log"
         
-        # Launch SSH tunnel and force all terminal text to a background text dump file
-        Start-Process cmd -ArgumentList "/c ssh -T -p 443 -R 0:127.0.0.1:3389 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io" -RedirectStandardOutput $LogPath -RedirectStandardError $LogPath
+        # Launch SSH tunnel with completely distinct output and error log filenames
+        Start-Process cmd -ArgumentList "/c ssh -T -p 443 -R 0:127.0.0.1:3389 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.PINGGY_TOKEN }}+tcp@free.pinggy.io" -RedirectStandardOutput $OutPath -RedirectStandardError $ErrPath
         
         # Allow the tunnel handshake 20 seconds to establish with free.pinggy.io servers
         Start-Sleep -Seconds 20
         
         Write-Host "========================================="
-        if (Test-Path $LogPath) {
-            $RawText = Get-Content $LogPath -Raw
+        if (Test-Path $OutPath) {
+            $RawText = Get-Content $OutPath -Raw
             # Filter the dump file specifically looking for the raw pinggy link format match
             if ($RawText -match "(a\.free\.pinggy\.link:\d+)") {
                 Write-Host "YOUR VPS LINK IS: tcp://$($Matches[1])"
             } else {
-                Write-Host "Parsing logs... If blank, look for the link here:"
-                Get-Content $LogPath | Select-String -Pattern "pinggy"
+                Write-Host "Parsing output logs..."
+                Get-Content $OutPath
             }
-        } else {
-            Write-Host "Tunnel initializing. Refresh log window shortly."
+        }
+        if (Test-Path $ErrPath) {
+            Write-Host "System Messages / Status logs:"
+            Get-Content $ErrPath
         }
         Write-Host "========================================="
         
